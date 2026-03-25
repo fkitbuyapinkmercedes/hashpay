@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HashPay Mini App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: '#050505',
+            indigoGlow: '#6366f1',
+            surface: 'rgba(255,255,255,0.06)'
+          },
+          boxShadow: {
+            glow: '0 0 0 1px rgba(99,102,241,0.25), 0 25px 80px rgba(79,70,229,0.25)'
+          },
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --card: rgba(255, 255, 255, 0.06);
+      --stroke: rgba(255, 255, 255, 0.08);
+      --muted: rgba(255, 255, 255, 0.62);
+      --indigo: #6366f1;
+      --indigo-soft: rgba(99, 102, 241, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.2), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 28%),
+        linear-gradient(180deg, #09090b 0%, #050505 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: radial-gradient(circle at center, black 45%, transparent 95%);
+      pointer-events: none;
+    }
+
+    .glass-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid var(--stroke);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 0 24px 80px rgba(0,0,0,0.45);
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      animation: rise 0.7s cubic-bezier(.2, .8, .2, 1) forwards;
+    }
+
+    .reveal-delay-1 { animation-delay: 0.08s; }
+    .reveal-delay-2 { animation-delay: 0.16s; }
+    .reveal-delay-3 { animation-delay: 0.24s; }
+
+    .tier-button.active,
+    .currency-button.active {
+      border-color: rgba(99, 102, 241, 0.55);
+      background: linear-gradient(135deg, rgba(99,102,241,0.22), rgba(79,70,229,0.1));
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.18), 0 18px 50px rgba(79,70,229,0.22);
+      color: white;
+    }
+
+    .upload-label.filled {
+      border-color: rgba(34,197,94,0.45);
+      background: rgba(34,197,94,0.08);
+    }
+
+    .input-dark {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      color: white;
+    }
+
+    .input-dark:focus {
+      outline: none;
+      border-color: rgba(99,102,241,0.65);
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.16);
+    }
+
+    @keyframes rise {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body class="bg-base text-white">
+  <main class="relative mx-auto flex min-h-screen w-full max-w-xl flex-col gap-5 px-4 py-6 sm:px-6">
+    <section class="glass-card reveal rounded-[28px] p-5 shadow-glow">
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p class="mb-2 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/60">
+            HashPay // Dark Bridge
+          </p>
+          <h1 class="text-3xl font-bold leading-tight text-white">
+            P2P-обмен для Alipay, Papara и зарубежных оплат
+          </h1>
+        </div>
+        <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-3 py-2 text-right">
+          <p class="text-[10px] uppercase tracking-[0.25em] text-indigo-200/60">Fee</p>
+          <p class="text-lg font-bold text-indigo-200">5%</p>
+        </div>
+      </div>
+
+      <p class="max-w-md text-sm leading-6 text-white/65">
+        Escrow-защита сделки для селлеров и путешественников. Пополните баланс быстро, без прямого банковского перевода за рубеж.
+      </p>
+    </section>
+
+    <section class="glass-card reveal reveal-delay-1 rounded-[28px] p-5">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-[0.24em] text-white/45">Smart calculator</p>
+          <h2 class="text-xl font-bold">Рассчитать обмен</h2>
+        </div>
+        <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55">
+          Live MVP rates
+        </div>
+      </div>
+
+      <label for="amountRub" class="mb-2 block text-sm text-white/60">Сумма в RUB</label>
+      <input
+        id="amountRub"
+        type="number"
+        min="0"
+        inputmode="decimal"
+        placeholder="Например, 5000"
+        class="input-dark mb-4 w-full rounded-2xl px-4 py-4 text-xl font-medium transition"
+      >
+
+      <div class="mb-4 grid grid-cols-2 gap-3">
+        <button type="button" data-currency="CNY" class="currency-button active rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition">
+          <p class="text-xs uppercase tracking-[0.24em] text-white/45">Alipay / China</p>
+          <p class="mt-2 text-lg font-bold">CNY</p>
+          <p id="cnyValue" class="mt-1 text-sm text-white/60">0.00 CNY</p>
+        </button>
+        <button type="button" data-currency="TRY" class="currency-button rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition">
+          <p class="text-xs uppercase tracking-[0.24em] text-white/45">Papara / Turkey</p>
+          <p class="mt-2 text-lg font-bold">TRY</p>
+          <p id="tryValue" class="mt-1 text-sm text-white/60">0.00 TRY</p>
+        </button>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p class="text-xs uppercase tracking-[0.24em] text-white/45">Вы получите</p>
+          <p id="receiveAmount" class="mt-2 text-2xl font-bold">0.00 CNY</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p class="text-xs uppercase tracking-[0.24em] text-white/45">Маршрут</p>
+          <p id="payoutMethod" class="mt-2 text-base font-medium text-white/80">Alipay top-up</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-card reveal reveal-delay-2 rounded-[28px] p-5">
+      <div class="mb-4">
+        <p class="text-xs uppercase tracking-[0.24em] text-white/45">Verification tiers</p>
+        <h2 class="text-xl font-bold">KYC / Onboarding</h2>
+      </div>
+
+      <div class="mb-4 grid grid-cols-3 gap-2">
+        <button type="button" data-tier="Tier 1" class="tier-button active rounded-2xl border border-white/10 bg-white/5 p-3 text-sm transition">
+          Lite
+        </button>
+        <button type="button" data-tier="Tier 2" class="tier-button rounded-2xl border border-white/10 bg-white/5 p-3 text-sm transition">
+          Reseller
+        </button>
+        <button type="button" data-tier="Tier 3" class="tier-button rounded-2xl border border-white/10 bg-white/5 p-3 text-sm transition">
+          Whale
+        </button>
+      </div>
+
+      <div class="mb-4 rounded-2xl border border-indigo-400/15 bg-indigo-500/10 p-4">
+        <p id="tierDescription" class="text-sm leading-6 text-indigo-100/80">
+          Tier 1: быстрый запуск, достаточно телефона для первой заявки.
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label for="phoneInput" class="mb-2 block text-sm text-white/60">Телефон / Telegram для связи</label>
+          <input
+            id="phoneInput"
+            type="tel"
+            placeholder="+7 999 123 45 67"
+            class="input-dark w-full rounded-2xl px-4 py-4 transition"
+          >
+        </div>
+
+        <div id="tier2Fields" class="hidden grid gap-3 sm:grid-cols-2">
+          <label id="passportLabel" class="upload-label flex cursor-pointer flex-col rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 transition">
+            <span class="text-xs uppercase tracking-[0.24em] text-white/45">Passport</span>
+            <span id="passportText" class="mt-2 text-sm text-white/70">Загрузить фото паспорта</span>
+            <input id="passportFile" type="file" accept="image/*" class="hidden">
+          </label>
+
+          <label id="selfieLabel" class="upload-label flex cursor-pointer flex-col rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 transition">
+            <span class="text-xs uppercase tracking-[0.24em] text-white/45">Selfie Check</span>
+            <span id="selfieText" class="mt-2 text-sm text-white/70">Загрузить селфи</span>
+            <input id="selfieFile" type="file" accept="image/*" class="hidden">
+          </label>
+        </div>
+
+        <div id="tier3Fields" class="hidden rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100/80">
+          Доступно для оборота от 1 млн руб. Подключается через персонального менеджера и расширенную проверку.
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-card reveal reveal-delay-3 rounded-[28px] p-5">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-[0.24em] text-white/45">Deal summary</p>
+          <h2 class="text-xl font-bold">Подтверждение заявки</h2>
+        </div>
+        <div id="tierBadge" class="rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-100/85">
+          Tier 1
+        </div>
+      </div>
+
+      <div class="mb-5 grid gap-3 text-sm text-white/70">
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>Сумма</span>
+          <span id="summaryAmount" class="font-medium text-white">0 RUB</span>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>Получение</span>
+          <span id="summaryTarget" class="font-medium text-white">0.00 CNY</span>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>Комиссия платформы</span>
+          <span id="summaryFee" class="font-medium text-white">0 RUB</span>
+        </div>
+      </div>
+
+      <button
+        id="submitButton"
+        type="button"
+        class="w-full rounded-2xl bg-indigo-500 px-4 py-4 text-base font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/25"
+      >
+        Оплатить
+      </button>
+
+      <p class="mt-3 text-center text-xs leading-5 text-white/45">
+        В MVP фото передаются как имена выбранных файлов. Для production нужен безопасный backend-upload.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    // Static MVP rates used by the calculator.
+    const rates = {
+      CNY: 0.09,
+      TRY: 0.35
+    };
+
+    // This hook lets the Mini App talk to a future standalone backend API.
+    const appConfig = {
+      apiBaseUrl: window.HASHPAY_CONFIG && window.HASHPAY_CONFIG.apiBaseUrl
+        ? window.HASHPAY_CONFIG.apiBaseUrl.replace(/\/$/, '')
+        : ''
+    };
+
+    const payoutMethods = {
+      CNY: 'Alipay top-up',
+      TRY: 'Papara / Turkish card'
+    };
+
+    const tierDescriptions = {
+      'Tier 1': 'Tier 1: быстрый запуск, достаточно телефона для первой заявки.',
+      'Tier 2': 'Tier 2: для реселлеров. Нужны фото паспорта и селфи для усиленной проверки.',
+      'Tier 3': 'Tier 3: high-volume сопровождение. Доступно для оборота от 1 млн руб.'
+    };
+
+    let selectedCurrency = 'CNY';
+    let selectedTier = 'Tier 1';
+
+    // Telegram Mini App bridge is available only inside Telegram.
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.setHeaderColor('#050505');
+      tg.setBackgroundColor('#050505');
+    }
+
+    const amountRubInput = document.getElementById('amountRub');
+    const phoneInput = document.getElementById('phoneInput');
+    const cnyValue = document.getElementById('cnyValue');
+    const tryValue = document.getElementById('tryValue');
+    const receiveAmount = document.getElementById('receiveAmount');
+    const payoutMethod = document.getElementById('payoutMethod');
+    const tierDescription = document.getElementById('tierDescription');
+    const tierBadge = document.getElementById('tierBadge');
+    const summaryAmount = document.getElementById('summaryAmount');
+    const summaryTarget = document.getElementById('summaryTarget');
+    const summaryFee = document.getElementById('summaryFee');
+    const tier2Fields = document.getElementById('tier2Fields');
+    const tier3Fields = document.getElementById('tier3Fields');
+    const passportFile = document.getElementById('passportFile');
+    const selfieFile = document.getElementById('selfieFile');
+    const passportText = document.getElementById('passportText');
+    const selfieText = document.getElementById('selfieText');
+    const passportLabel = document.getElementById('passportLabel');
+    const selfieLabel = document.getElementById('selfieLabel');
+    const submitButton = document.getElementById('submitButton');
+
+    const formatNumber = (value, digits = 2) =>
+      new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value);
+
+    const formatRub = (value) =>
+      new Intl.NumberFormat('ru-RU', {
+        maximumFractionDigits: 0
+      }).format(value);
+
+    function getAmountRub() {
+      const value = parseFloat(amountRubInput.value);
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    }
+
+    function getTargetAmount(currency) {
+      return getAmountRub() * rates[currency];
+    }
+
+    function refreshCalculator() {
+      const amountRub = getAmountRub();
+      const cny = getTargetAmount('CNY');
+      const tryAmount = getTargetAmount('TRY');
+      const fee = amountRub * 0.05;
+      const target = getTargetAmount(selectedCurrency);
+
+      cnyValue.textContent = `${formatNumber(cny)} CNY`;
+      tryValue.textContent = `${formatNumber(tryAmount)} TRY`;
+      receiveAmount.textContent = `${formatNumber(target)} ${selectedCurrency}`;
+      payoutMethod.textContent = payoutMethods[selectedCurrency];
+      summaryAmount.textContent = `${formatRub(amountRub)} RUB`;
+      summaryTarget.textContent = `${formatNumber(target)} ${selectedCurrency}`;
+      summaryFee.textContent = `${formatRub(fee)} RUB`;
+    }
+
+    function refreshTierUI() {
+      document.querySelectorAll('.tier-button').forEach((button) => {
+        button.classList.toggle('active', button.dataset.tier === selectedTier);
+      });
+
+      tierDescription.textContent = tierDescriptions[selectedTier];
+      tierBadge.textContent = selectedTier;
+      tier2Fields.classList.toggle('hidden', selectedTier !== 'Tier 2');
+      tier3Fields.classList.toggle('hidden', selectedTier !== 'Tier 3');
+    }
+
+    function refreshCurrencyUI() {
+      document.querySelectorAll('.currency-button').forEach((button) => {
+        button.classList.toggle('active', button.dataset.currency === selectedCurrency);
+      });
+      refreshCalculator();
+    }
+
+    function updateFileState(input, label, textNode, fallbackText) {
+      const fileName = input.files && input.files[0] ? input.files[0].name : '';
+      label.classList.toggle('filled', Boolean(fileName));
+      textNode.textContent = fileName || fallbackText;
+    }
+
+    async function syncApplicationToBackend(payload) {
+      if (!appConfig.apiBaseUrl) {
+        return;
+      }
+
+      try {
+        await fetch(`${appConfig.apiBaseUrl}/api/applications`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': tg ? tg.initData : ''
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        console.error('HashPay backend sync failed:', error);
+      }
+    }
+
+    function validateForm() {
+      const amountRub = getAmountRub();
+      if (!amountRub) {
+        alert('Введите сумму в RUB.');
+        return false;
+      }
+
+      if (!phoneInput.value.trim()) {
+        alert('Укажите телефон или Telegram для связи.');
+        return false;
+      }
+
+      if (selectedTier === 'Tier 2') {
+        if (!(passportFile.files && passportFile.files[0])) {
+          alert('Для Tier 2 нужен файл паспорта.');
+          return false;
+        }
+        if (!(selfieFile.files && selfieFile.files[0])) {
+          alert('Для Tier 2 нужно селфи.');
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    document.querySelectorAll('.currency-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedCurrency = button.dataset.currency;
+        refreshCurrencyUI();
+      });
+    });
+
+    document.querySelectorAll('.tier-button').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedTier = button.dataset.tier;
+        refreshTierUI();
+      });
+    });
+
+    amountRubInput.addEventListener('input', refreshCalculator);
+    passportFile.addEventListener('change', () => {
+      updateFileState(passportFile, passportLabel, passportText, 'Загрузить фото паспорта');
+    });
+    selfieFile.addEventListener('change', () => {
+      updateFileState(selfieFile, selfieLabel, selfieText, 'Загрузить селфи');
+    });
+
+    submitButton.addEventListener('click', async () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      // In MVP mode files are represented by filenames only.
+      const payload = {
+        amount_rub: getAmountRub(),
+        target_currency: selectedCurrency,
+        target_amount: `${formatNumber(getTargetAmount(selectedCurrency))} ${selectedCurrency}`,
+        kyc_tier: selectedTier,
+        phone: phoneInput.value.trim(),
+        payout_method: payoutMethods[selectedCurrency],
+        passport_file_name: passportFile.files && passportFile.files[0] ? passportFile.files[0].name : '',
+        selfie_file_name: selfieFile.files && selfieFile.files[0] ? selfieFile.files[0].name : '',
+        telegram_user_id: tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null,
+        telegram_username: tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username || '' : '',
+        created_at: new Date().toISOString()
+      };
+
+      await syncApplicationToBackend(payload);
+
+      if (tg) {
+        tg.sendData(JSON.stringify(payload));
+        tg.close();
+        return;
+      }
+
+      alert(`Telegram WebApp API недоступен.\n\n${JSON.stringify(payload, null, 2)}`);
+    });
+
+    refreshTierUI();
+    refreshCurrencyUI();
+    refreshCalculator();
+  </script>
+</body>
+</html>
