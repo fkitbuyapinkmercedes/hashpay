@@ -28,6 +28,7 @@ hashpay/
 ```text
 BOT_TOKEN=...
 WEBAPP_URL=https://hashpay-web.vercel.app
+ADMIN_CHAT_ID=123456789
 ```
 
 ## Local launch
@@ -41,6 +42,17 @@ python -m venv .venv
 pip install -r requirements.txt
 Copy-Item .env.example .env
 python bot.py
+```
+
+- Send `/myid` to the bot from your personal Telegram account.
+- Copy the returned value into `ADMIN_CHAT_ID`.
+- Admin commands for manual processing:
+
+```text
+/orders
+/take HP-XXXX
+/done HP-XXXX
+/cancel HP-XXXX
 ```
 
 ### Web
@@ -57,3 +69,11 @@ python bot.py
 - it also forwards `Telegram.WebApp.initData` in the `X-Telegram-Init-Data` header for backend verification
 
 This means you can later add a proper API on Railway, FastAPI, Django, or Vercel Functions without rewriting the Mini App UI.
+
+## Manual-order MVP
+
+- The Mini App creates a manual application with a unique ID.
+- The bot stores the request locally in SQLite and sends it to the admin chat.
+- The operator updates statuses manually via bot commands.
+
+Note: SQLite is enough for a demo or school MVP. For durable production storage on Railway you should later move orders to Postgres or another external database.

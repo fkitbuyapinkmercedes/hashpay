@@ -82,6 +82,7 @@
     .reveal-delay-1 { animation-delay: 0.08s; }
     .reveal-delay-2 { animation-delay: 0.16s; }
     .reveal-delay-3 { animation-delay: 0.24s; }
+    .reveal-delay-4 { animation-delay: 0.32s; }
 
     .tier-button.active,
     .currency-button.active {
@@ -125,7 +126,7 @@
             HashPay // Dark Bridge
           </p>
           <h1 class="text-3xl font-bold leading-tight text-white">
-            P2P-обмен для Alipay, Papara и зарубежных оплат
+            Заявка на пополнение Alipay и Papara
           </h1>
         </div>
         <div class="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-3 py-2 text-right">
@@ -135,7 +136,7 @@
       </div>
 
       <p class="max-w-md text-sm leading-6 text-white/65">
-        Escrow-защита сделки для селлеров и путешественников. Пополните баланс быстро, без прямого банковского перевода за рубеж.
+        MVP для приема заявок на пополнение Alipay и Papara. После отправки менеджер вручную подтверждает детали и сопровождает заявку.
       </p>
     </section>
 
@@ -186,6 +187,47 @@
     </section>
 
     <section class="glass-card reveal reveal-delay-2 rounded-[28px] p-5">
+      <div class="mb-4">
+        <p class="text-xs uppercase tracking-[0.24em] text-white/45">Recipient details</p>
+        <h2 class="text-xl font-bold">Куда отправить пополнение</h2>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label id="destinationLabel" for="destinationInput" class="mb-2 block text-sm text-white/60">
+            Alipay ID / телефон получателя
+          </label>
+          <input
+            id="destinationInput"
+            type="text"
+            placeholder="Например, +86 138 0000 0000"
+            class="input-dark w-full rounded-2xl px-4 py-4 transition"
+          >
+        </div>
+
+        <div>
+          <label for="recipientNameInput" class="mb-2 block text-sm text-white/60">Имя получателя</label>
+          <input
+            id="recipientNameInput"
+            type="text"
+            placeholder="Например, Artem / Li Wei"
+            class="input-dark w-full rounded-2xl px-4 py-4 transition"
+          >
+        </div>
+
+        <div>
+          <label for="noteInput" class="mb-2 block text-sm text-white/60">Комментарий к заявке</label>
+          <textarea
+            id="noteInput"
+            rows="3"
+            placeholder="Что нужно пополнить, срочность, доп. комментарии"
+            class="input-dark w-full rounded-2xl px-4 py-4 transition"
+          ></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-card reveal reveal-delay-3 rounded-[28px] p-5">
       <div class="mb-4">
         <p class="text-xs uppercase tracking-[0.24em] text-white/45">Verification tiers</p>
         <h2 class="text-xl font-bold">KYC / Onboarding</h2>
@@ -240,7 +282,7 @@
       </div>
     </section>
 
-    <section class="glass-card reveal reveal-delay-3 rounded-[28px] p-5">
+    <section class="glass-card reveal reveal-delay-4 rounded-[28px] p-5">
       <div class="mb-4 flex items-center justify-between gap-3">
         <div>
           <p class="text-xs uppercase tracking-[0.24em] text-white/45">Deal summary</p>
@@ -260,6 +302,10 @@
           <span>Получение</span>
           <span id="summaryTarget" class="font-medium text-white">0.00 CNY</span>
         </div>
+        <div class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>Реквизиты</span>
+          <span id="summaryDestination" class="truncate text-right font-medium text-white">не указаны</span>
+        </div>
         <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
           <span>Комиссия платформы</span>
           <span id="summaryFee" class="font-medium text-white">0 RUB</span>
@@ -271,11 +317,11 @@
         type="button"
         class="w-full rounded-2xl bg-indigo-500 px-4 py-4 text-base font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/25"
       >
-        Оплатить
+        Отправить заявку
       </button>
 
       <p class="mt-3 text-center text-xs leading-5 text-white/45">
-        В MVP фото передаются как имена выбранных файлов. Для production нужен безопасный backend-upload.
+        Это MVP с ручной обработкой заявок. Для production понадобятся безопасная загрузка файлов, хранение статусов и юридически корректный процесс верификации.
       </p>
     </section>
   </main>
@@ -299,6 +345,17 @@
       TRY: 'Papara / Turkish card'
     };
 
+    const payoutFieldLabels = {
+      CNY: {
+        label: 'Alipay ID / телефон получателя',
+        placeholder: 'Например, +86 138 0000 0000'
+      },
+      TRY: {
+        label: 'Papara номер / email / IBAN',
+        placeholder: 'Например, 5551234567'
+      }
+    };
+
     const tierDescriptions = {
       'Tier 1': 'Tier 1: быстрый запуск, достаточно телефона для первой заявки.',
       'Tier 2': 'Tier 2: для реселлеров. Нужны фото паспорта и селфи для усиленной проверки.',
@@ -319,6 +376,10 @@
 
     const amountRubInput = document.getElementById('amountRub');
     const phoneInput = document.getElementById('phoneInput');
+    const destinationInput = document.getElementById('destinationInput');
+    const destinationLabel = document.getElementById('destinationLabel');
+    const recipientNameInput = document.getElementById('recipientNameInput');
+    const noteInput = document.getElementById('noteInput');
     const cnyValue = document.getElementById('cnyValue');
     const tryValue = document.getElementById('tryValue');
     const receiveAmount = document.getElementById('receiveAmount');
@@ -327,6 +388,7 @@
     const tierBadge = document.getElementById('tierBadge');
     const summaryAmount = document.getElementById('summaryAmount');
     const summaryTarget = document.getElementById('summaryTarget');
+    const summaryDestination = document.getElementById('summaryDestination');
     const summaryFee = document.getElementById('summaryFee');
     const tier2Fields = document.getElementById('tier2Fields');
     const tier3Fields = document.getElementById('tier3Fields');
@@ -364,6 +426,7 @@
       const tryAmount = getTargetAmount('TRY');
       const fee = amountRub * 0.05;
       const target = getTargetAmount(selectedCurrency);
+      const destination = destinationInput.value.trim() || 'не указаны';
 
       cnyValue.textContent = `${formatNumber(cny)} CNY`;
       tryValue.textContent = `${formatNumber(tryAmount)} TRY`;
@@ -371,6 +434,7 @@
       payoutMethod.textContent = payoutMethods[selectedCurrency];
       summaryAmount.textContent = `${formatRub(amountRub)} RUB`;
       summaryTarget.textContent = `${formatNumber(target)} ${selectedCurrency}`;
+      summaryDestination.textContent = destination;
       summaryFee.textContent = `${formatRub(fee)} RUB`;
     }
 
@@ -389,6 +453,8 @@
       document.querySelectorAll('.currency-button').forEach((button) => {
         button.classList.toggle('active', button.dataset.currency === selectedCurrency);
       });
+      destinationLabel.textContent = payoutFieldLabels[selectedCurrency].label;
+      destinationInput.placeholder = payoutFieldLabels[selectedCurrency].placeholder;
       refreshCalculator();
     }
 
@@ -429,6 +495,11 @@
         return false;
       }
 
+      if (!destinationInput.value.trim()) {
+        alert('Укажите реквизиты получателя.');
+        return false;
+      }
+
       if (selectedTier === 'Tier 2') {
         if (!(passportFile.files && passportFile.files[0])) {
           alert('Для Tier 2 нужен файл паспорта.');
@@ -458,6 +529,7 @@
     });
 
     amountRubInput.addEventListener('input', refreshCalculator);
+    destinationInput.addEventListener('input', refreshCalculator);
     passportFile.addEventListener('change', () => {
       updateFileState(passportFile, passportLabel, passportText, 'Загрузить фото паспорта');
     });
@@ -478,6 +550,9 @@
         kyc_tier: selectedTier,
         phone: phoneInput.value.trim(),
         payout_method: payoutMethods[selectedCurrency],
+        payout_destination: destinationInput.value.trim(),
+        recipient_name: recipientNameInput.value.trim(),
+        note: noteInput.value.trim(),
         passport_file_name: passportFile.files && passportFile.files[0] ? passportFile.files[0].name : '',
         selfie_file_name: selfieFile.files && selfieFile.files[0] ? selfieFile.files[0].name : '',
         telegram_user_id: tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null,
