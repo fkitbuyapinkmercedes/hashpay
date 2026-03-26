@@ -350,6 +350,55 @@
         Это MVP с ручной обработкой заявок. Для production понадобятся безопасная загрузка файлов, хранение статусов и юридически корректный процесс верификации.
       </p>
     </section>
+
+    <section id="successState" class="glass-card hidden rounded-[28px] p-5 shadow-glow">
+      <div class="mb-4">
+        <p class="text-xs uppercase tracking-[0.24em] text-white/45">Application sent</p>
+        <h2 class="text-2xl font-bold">Заявка отправлена</h2>
+      </div>
+
+      <div class="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-100/85">
+        Мы приняли заявку и передали ее в бот. Дальше менеджер подтвердит детали в чате Telegram.
+      </div>
+
+      <div class="mb-4 grid gap-3 text-sm text-white/70">
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>ID заявки</span>
+          <span id="successApplicationId" class="font-medium text-white">HP-...</span>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>Сумма</span>
+          <span id="successSummaryAmount" class="font-medium text-white">0 RUB</span>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span>Получение</span>
+          <span id="successSummaryTarget" class="font-medium text-white">0 CNY</span>
+        </div>
+      </div>
+
+      <div id="successInstructions" class="mb-4 rounded-2xl border border-indigo-400/15 bg-indigo-500/10 p-4 text-sm leading-6 text-indigo-100/80">
+        Дождитесь сообщения от менеджера в Telegram. Не переводите деньги до подтверждения заявки.
+      </div>
+
+      <div id="paymentDetailsCard" class="mb-4 hidden rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100/85"></div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <button
+          id="returnToBotButton"
+          type="button"
+          class="w-full rounded-2xl bg-indigo-500 px-4 py-4 text-base font-bold text-white transition hover:bg-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/25"
+        >
+          Вернуться в чат
+        </button>
+        <button
+          id="newApplicationButton"
+          type="button"
+          class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-base font-bold text-white transition hover:bg-white/10 focus:outline-none focus:ring-4 focus:ring-white/10"
+        >
+          Новая заявка
+        </button>
+      </div>
+    </section>
   </main>
 
   <script>
@@ -363,6 +412,12 @@
     const appConfig = {
       apiBaseUrl: window.HASHPAY_CONFIG && window.HASHPAY_CONFIG.apiBaseUrl
         ? window.HASHPAY_CONFIG.apiBaseUrl.replace(/\/$/, '')
+        : '',
+      paymentInstructions: window.HASHPAY_CONFIG && window.HASHPAY_CONFIG.paymentInstructions
+        ? window.HASHPAY_CONFIG.paymentInstructions
+        : 'Дождитесь сообщения от менеджера в Telegram. Не переводите деньги до подтверждения заявки.',
+      paymentRequisites: window.HASHPAY_CONFIG && window.HASHPAY_CONFIG.paymentRequisites
+        ? window.HASHPAY_CONFIG.paymentRequisites
         : ''
     };
 
@@ -426,6 +481,15 @@
     const selfieLabel = document.getElementById('selfieLabel');
     const submitButton = document.getElementById('submitButton');
     const formStatus = document.getElementById('formStatus');
+    const successState = document.getElementById('successState');
+    const successApplicationId = document.getElementById('successApplicationId');
+    const successSummaryAmount = document.getElementById('successSummaryAmount');
+    const successSummaryTarget = document.getElementById('successSummaryTarget');
+    const successInstructions = document.getElementById('successInstructions');
+    const paymentDetailsCard = document.getElementById('paymentDetailsCard');
+    const returnToBotButton = document.getElementById('returnToBotButton');
+    const newApplicationButton = document.getElementById('newApplicationButton');
+    const formSections = Array.from(document.querySelectorAll('main > section')).filter((section) => section.id !== 'successState');
 
     const formatNumber = (value, digits = 2) =>
       new Intl.NumberFormat('ru-RU', {
@@ -513,6 +577,39 @@
       submitButton.textContent = isBusy ? 'Отправляем...' : 'Отправить заявку';
     }
 
+    function createApplicationId() {
+      const now = new Date();
+      const datePart = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const randomPart = Math.random().toString(16).slice(2, 6).toUpperCase();
+      return `HP-${datePart}-${randomPart}`;
+    }
+
+    function showSuccessState(payload) {
+      successApplicationId.textContent = payload.application_id;
+      successSummaryAmount.textContent = `${formatRub(payload.amount_rub)} RUB`;
+      successSummaryTarget.textContent = payload.target_amount;
+      successInstructions.textContent = appConfig.paymentInstructions;
+
+      if (appConfig.paymentRequisites) {
+        paymentDetailsCard.textContent = `Реквизиты для оплаты: ${appConfig.paymentRequisites}`;
+        paymentDetailsCard.classList.remove('hidden');
+      } else {
+        paymentDetailsCard.classList.add('hidden');
+      }
+
+      formSections.forEach((section) => section.classList.add('hidden'));
+      successState.classList.remove('hidden');
+      successState.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetApplicationFlow() {
+      successState.classList.add('hidden');
+      formSections.forEach((section) => section.classList.remove('hidden'));
+      setSubmitBusy(false);
+      setStatus('Заполните сумму, контакт и реквизиты получателя, затем отправьте заявку менеджеру.', 'info');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     async function syncApplicationToBackend(payload) {
       if (!appConfig.apiBaseUrl) {
         return;
@@ -597,6 +694,7 @@
 
       // In MVP mode files are represented by filenames only.
       const payload = {
+        application_id: createApplicationId(),
         amount_rub: getAmountRub(),
         target_currency: selectedCurrency,
         target_amount: `${formatNumber(getTargetAmount(selectedCurrency))} ${selectedCurrency}`,
@@ -617,15 +715,16 @@
         await syncApplicationToBackend(payload);
 
         if (tg) {
-          setStatus('Заявка отправлена. Возвращаемся в чат...', 'success');
+          setStatus('Заявка отправлена. Откройте чат, чтобы увидеть подтверждение бота.', 'success');
           if (tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') {
             tg.HapticFeedback.notificationOccurred('success');
           }
           tg.sendData(JSON.stringify(payload));
-          setTimeout(() => tg.close(), 300);
+          showSuccessState(payload);
           return;
         }
 
+        showSuccessState(payload);
         setStatus('Telegram WebApp API недоступен. Ниже показан payload заявки.', 'error');
         alert(`Telegram WebApp API недоступен.\n\n${JSON.stringify(payload, null, 2)}`);
       } finally {
@@ -633,6 +732,18 @@
           setSubmitBusy(false);
         }
       }
+    });
+
+    returnToBotButton.addEventListener('click', () => {
+      if (tg) {
+        tg.close();
+        return;
+      }
+      resetApplicationFlow();
+    });
+
+    newApplicationButton.addEventListener('click', () => {
+      resetApplicationFlow();
     });
 
     refreshTierUI();
