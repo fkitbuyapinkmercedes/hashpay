@@ -109,6 +109,28 @@
       box-shadow: 0 0 0 4px rgba(99,102,241,0.16);
     }
 
+    .status-panel {
+      border: 1px solid transparent;
+    }
+
+    .status-panel.info {
+      border-color: rgba(99,102,241,0.25);
+      background: rgba(99,102,241,0.12);
+      color: rgba(224,231,255,0.92);
+    }
+
+    .status-panel.success {
+      border-color: rgba(34,197,94,0.28);
+      background: rgba(34,197,94,0.12);
+      color: rgba(220,252,231,0.92);
+    }
+
+    .status-panel.error {
+      border-color: rgba(248,113,113,0.28);
+      background: rgba(248,113,113,0.12);
+      color: rgba(254,226,226,0.92);
+    }
+
     @keyframes rise {
       to {
         opacity: 1;
@@ -320,6 +342,10 @@
         Отправить заявку
       </button>
 
+      <div id="formStatus" class="status-panel info mt-3 rounded-2xl px-4 py-3 text-sm leading-6">
+        Заполните сумму, контакт и реквизиты получателя, затем отправьте заявку менеджеру.
+      </div>
+
       <p class="mt-3 text-center text-xs leading-5 text-white/45">
         Это MVP с ручной обработкой заявок. Для production понадобятся безопасная загрузка файлов, хранение статусов и юридически корректный процесс верификации.
       </p>
@@ -399,6 +425,7 @@
     const passportLabel = document.getElementById('passportLabel');
     const selfieLabel = document.getElementById('selfieLabel');
     const submitButton = document.getElementById('submitButton');
+    const formStatus = document.getElementById('formStatus');
 
     const formatNumber = (value, digits = 2) =>
       new Intl.NumberFormat('ru-RU', {
@@ -464,6 +491,28 @@
       textNode.textContent = fileName || fallbackText;
     }
 
+    function setStatus(message, tone = 'info') {
+      formStatus.textContent = message;
+      formStatus.classList.remove('info', 'success', 'error');
+      formStatus.classList.add(tone);
+    }
+
+    function showValidationError(message) {
+      setStatus(message, 'error');
+      if (tg && typeof tg.showAlert === 'function') {
+        tg.showAlert(message);
+        return;
+      }
+      alert(message);
+    }
+
+    function setSubmitBusy(isBusy) {
+      submitButton.disabled = isBusy;
+      submitButton.classList.toggle('opacity-70', isBusy);
+      submitButton.classList.toggle('cursor-not-allowed', isBusy);
+      submitButton.textContent = isBusy ? 'Отправляем...' : 'Отправить заявку';
+    }
+
     async function syncApplicationToBackend(payload) {
       if (!appConfig.apiBaseUrl) {
         return;
@@ -486,31 +535,32 @@
     function validateForm() {
       const amountRub = getAmountRub();
       if (!amountRub) {
-        alert('Введите сумму в RUB.');
+        showValidationError('Введите сумму в RUB.');
         return false;
       }
 
       if (!phoneInput.value.trim()) {
-        alert('Укажите телефон или Telegram для связи.');
+        showValidationError('Укажите телефон или Telegram для связи.');
         return false;
       }
 
       if (!destinationInput.value.trim()) {
-        alert('Укажите реквизиты получателя.');
+        showValidationError('Укажите реквизиты получателя.');
         return false;
       }
 
       if (selectedTier === 'Tier 2') {
         if (!(passportFile.files && passportFile.files[0])) {
-          alert('Для Tier 2 нужен файл паспорта.');
+          showValidationError('Для Tier 2 нужен файл паспорта.');
           return false;
         }
         if (!(selfieFile.files && selfieFile.files[0])) {
-          alert('Для Tier 2 нужно селфи.');
+          showValidationError('Для Tier 2 нужно селфи.');
           return false;
         }
       }
 
+      setStatus('Проверка полей прошла успешно. Готово к отправке.', 'info');
       return true;
     }
 
@@ -542,6 +592,9 @@
         return;
       }
 
+      setSubmitBusy(true);
+      setStatus('Отправляем заявку менеджеру...', 'info');
+
       // In MVP mode files are represented by filenames only.
       const payload = {
         amount_rub: getAmountRub(),
@@ -560,15 +613,26 @@
         created_at: new Date().toISOString()
       };
 
-      await syncApplicationToBackend(payload);
+      try {
+        await syncApplicationToBackend(payload);
 
-      if (tg) {
-        tg.sendData(JSON.stringify(payload));
-        tg.close();
-        return;
+        if (tg) {
+          setStatus('Заявка отправлена. Возвращаемся в чат...', 'success');
+          if (tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') {
+            tg.HapticFeedback.notificationOccurred('success');
+          }
+          tg.sendData(JSON.stringify(payload));
+          setTimeout(() => tg.close(), 300);
+          return;
+        }
+
+        setStatus('Telegram WebApp API недоступен. Ниже показан payload заявки.', 'error');
+        alert(`Telegram WebApp API недоступен.\n\n${JSON.stringify(payload, null, 2)}`);
+      } finally {
+        if (!tg) {
+          setSubmitBusy(false);
+        }
       }
-
-      alert(`Telegram WebApp API недоступен.\n\n${JSON.stringify(payload, null, 2)}`);
     });
 
     refreshTierUI();
