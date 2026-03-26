@@ -104,8 +104,13 @@ def is_admin_message(message: Message) -> bool:
 
 def create_application_record(message: Message, payload: dict[str, object]) -> dict[str, object]:
     """Persist a new manual order request and return the created record."""
+    requested_id = str(payload.get("application_id", "")).strip().upper()
+    application_id = requested_id or generate_application_id()
+    if get_application(application_id):
+        application_id = generate_application_id()
+
     application = {
-        "id": generate_application_id(),
+        "id": application_id,
         "user_id": message.from_user.id if message.from_user else 0,
         "chat_id": message.chat.id,
         "username": message.from_user.username if message.from_user else "",
@@ -371,7 +376,8 @@ async def web_app_data_handler(message: Message) -> None:
     await message.answer(
         f"Заявка <b>{sanitize_text(application['id'])}</b> создана.\n"
         f"Статус: <b>{STATUS_NEW}</b>\n"
-        "Менеджер проверит данные и свяжется с вами вручную."
+        "Следующий шаг: дождитесь подтверждения менеджера в этом чате.\n"
+        "Не переводите деньги до подтверждения заявки."
     )
 
     await notify_admin(message.bot, application)
